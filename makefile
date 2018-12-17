@@ -1,4 +1,4 @@
-charly : charly.o
-	gcc charly.o -o charly -lm
-charly.o : charly.c
-	gcc -c charly.c
+charlie : charlie.o
+	gcc charlie.o -o charlie -lm
+charlie.o : charlie.c
+	gcc -c charlie.c
