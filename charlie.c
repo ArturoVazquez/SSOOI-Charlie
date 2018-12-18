@@ -51,48 +51,46 @@ int main (int argc, char* argv[]){
             break;
         case 0:
             printf("Soy Bosley : %d\n", getpid());
-            //crearAngeles(*hijos);
             switch (hijos.sabrina = fork()){
                 case -1:
                     perror("\nNo se ha podido crear a Sabrina\n");
+                    exit(1);
                     break;
                 case 0:
                     printf("Soy Sabrina : %d\n", getpid());
                     break;
                 default:
-                    printf("Soy el padre de sabrina: %d\n", getppid());
+                    switch (hijos.jill = fork()){
+                        case -1:
+                            perror("\nNo se ha podido crear a Jill\n");
+                            exit(1);
+                            break;
+                        case 0:
+                            printf("Soy jill : %d\n", getpid());
+                            break;
+                        default:
+                            switch (hijos.kelly = fork()){
+                                case -1:
+                                    perror("\nNo se ha podido crear a Kelly\n");
+                                    exit(1);
+                                    break;
+                                case 0:
+                                    printf("Soy kelly : %d\n", getpid());
+                                    break;
+                                default:
+                                    printf("Soy el padre de kelly: %d\n",  getpid());
+                                    break;
+                            }
+                        break;
+                    }
                     break;
             }
-
-            switch (hijos.sabrina = fork()){
-                case -1:
-                    perror("\nNo se ha podido crear a Sabrina\n");
-                    break;
-                case 0:
-                    printf("Soy jill : %d\n", getpid());
-                    break;
-                default:
-                    printf("Soy el padre de jill: %d\n",  getppid());
-                    break;
-            }
-
-            switch (hijos.sabrina = fork()){
-                case -1:
-                    perror("\nNo se ha podido crear a Sabrina\n");
-                    break;
-                case 0:
-                    printf("Soy kelly : %d\n", getpid());
-                    break;
-                default:
-                    printf("Soy el padre de kelly: %d\n",  getppid());
-                    break;
-            }
-            break;
+        break;
         default:
             printf("Soy el padre : %d\n",  getppid());
             break;
     }
-    sleep(60);
+    sleep(10);
 return 0;
 }
 
