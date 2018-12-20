@@ -11,10 +11,7 @@
 #define TAM 20
 typedef struct{
 
-	pid_t sigPID;
-	pid_t sigAlternative;
 	pid_t malo,bosley,sabrina,jill,kelly;
-	int num;
 
 } SOY;
 
@@ -44,6 +41,15 @@ int main (int argc, char* argv[], char * envp []){
         }
     }
 
+  //CREO MASCARA
+/*
+    sigdelset(&mask,SIGTERM);
+    sigset_t mask;
+    sillfillset(&mask);
+    sigdelset(&mask, SIGUSR1);
+    sigdelset(&mask,SIGTERM);
+    sigprocmask(SIG_SETMASK, &mask, NULL);
+*/
     if (strcmp(argv[0],"./charlie") == 0) {
         processCharlie(&hijos);
     }else if(strcmp(argv[0],"bosley") == 0) {
@@ -87,6 +93,11 @@ void processCharlie(SOY * hijos){
             }
         break;
     }
+    // SIGACTION DE CHARLIE AQUI
+    /*
+    sigaction()
+    */
+    // 3 SIGSUSPEND SOBRE LA MASCARA CREADA PORQUE CADA ANGEL ENVIA UNA SEÑAL (ESPERA X 3 SEÑALES)CUANDO SE DESBLOQUEA ES XQ YA SE HAN CREADO LOS 3 ANGELES
     sleep(90);
     printf("\nFIN...\n");
 }
@@ -137,15 +148,18 @@ int processBosley(SOY * hijos){
     }
     printf("\nTODOS LOS ANGELES CREADOS\n");
     sleep(20);
+        //CREAR SIGACTION BOSLEY
 }
 
 void processAngel(SOY * hijos, char *angel){
     printf("\nEJECUTANDO ANGEL... %s\n", angel);
     sleep(15);
+        //AQUI SIGACTION ANGELES
 }
 
 void processMalo(SOY * hijos){
     printf("\nEJECUTANDO MALO...\n");
+        //SIGACTION DE MALO
 
     int i=0;
     hijos->malo = getpid();
@@ -161,6 +175,9 @@ void processMalo(SOY * hijos){
             case 0:
                 kill(hijos->malo, SIGKILL);
                 hijos->malo = getpid();
+                if(i=0){
+                kill(Charlie)    //Mensaje a charlie muerte del primer malo
+                }
                 i++;
                 printf("JA, JA, JA, me acabo de reencarnar y mi nuevo PID es: %d. Que malo que soy...",hijos->malo);
                 break;
@@ -189,6 +206,13 @@ void dormirMalo (int velocidad){
         sleep(rnd);
     }
 }
+
+/* Proyeccion de memoria a un proceso un archivo
+void * mmap (NULL, tamaño de página, PROT_EXEC, MAP_SHARED, fd, 0){  
+    for(int i=0,i<TAM;i++){
+        &i=0;
+    }
+} */
 
 
 /*NOTAS*/
