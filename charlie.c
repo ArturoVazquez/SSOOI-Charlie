@@ -212,12 +212,65 @@ void processAngel(char *angel){
     write(1, msg, sizeof(msg)-1);
 
     /*
-    sig_t mask_angeles;
-    sigfillset(&mask_malo);
-    sigdelset(&mask_malo, SIGUSR1);
-    sigprocmask(SIG_SETMASK, &mask_malo, NULL);  
+    struct sigaction act4;
+  
+    act4.sa_handler = EMPTY_HANDLER;
+  act4.sa_flags = 0;
+  sigemptyset(&act4.sa_mask);
 
-    sigsuspend(&mask_angeles);*/
+  if(sigaction(SIGUSR1,&act4,NULL)==-1){
+    perror("SIGACTION USR1");
+    exit(1);
+  }
+    
+
+    //sigsuspend(); // para atacar empezars
+    sigset_t mask_angeles;
+    sigfillset(&mask_angeles);
+    sigdelset(&mask_angeles, SIGUSR1);
+    sigprocmask(SIG_SETMASK, &mask_angeles, NULL);  
+  sigsuspend(&mask_angeles);
+    int disp=0, fd, dir=0; PID=0;
+    char *address;
+    fd=open("pids.bin", O_RDWR);
+    address = mmap(0, 80, PROT_WRITE | PROT_READ, MAP_SHARED,fd,0);
+    close(fd);
+    for (disparo=0;disparo<3;disparo++){
+    if(strcmp(velocidad,"normal")==0){
+      sleep(6+(int)(rand()/(1.0+RAND_MAX)*(12-6+1)));
+    }
+    dir = generarRandom(0,20);
+    PID=address[direccion]*1000+address[direccion+1]*100+address[direccion+2]*10+address[direccion+3];
+    //Imprimir por pantalla voy a disparar a PID
+    if(PID==0){ 
+       //"Pardiez! La pistola se ha encasquillado\"
+        if(disparo==2){
+          //"He fallado ya tres veces y no me quedan mAs balas. Muero\"
+        }
+    }else{
+      if(0==kill(PID,SIGTERM)){
+        //BINGO! He hecho diana! Un malo menos
+        if(strcmp(nombre,"KELLY")==0){
+          kill(getppid(),SIGTERM);
+        }
+        if(strcmp(nombre,"SABRINA")==0){
+          kill(getppid(),SIGTERM);
+        }
+        if(strcmp(nombre,"JILL")==0){
+          kill(getppid(),SIGTERM);
+        }
+        munmap(address, 80); 
+        exit(0);
+      }else{
+        if(disparo==2){
+          He fallado ya tres veces y no me quedan mAs balas. Muero\"\n",nombre);
+        }else{
+          //e fallado. Vuelvo a intentarlo
+        }
+      }
+    }
+    }
+*/
 }
 
 void processMalo(){
