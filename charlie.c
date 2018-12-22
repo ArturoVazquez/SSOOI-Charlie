@@ -1,48 +1,32 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include<stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <fcntl.h>
-#include <time.h>
-#include <sys/mman.h>
+#include <sys/wait.h> /** waitpid */
+#include <signal.h> /* signal */
+#include <time.h>   /* time */
+#include <sys/mman.h> /* mmap, munmap */
 #include <string.h>
+#include <fcntl.h>
 
 #define TAM 20
-typedef struct{
-	pid_t charlie,malo,bosley,sabrina,jill,kelly;
-    int num;
-} SOY;
-
-struct sigaction act;
 
 void dormirMalo (int );
 void dormirAngeles (int );
-void processBosley(SOY *, sigset_t *);
-void processCharlie(SOY *, sigset_t *);
-void processMalo(SOY *, sigset_t *);
-void processAngel(SOY *, char *);
-
-
-int leerBloque(int * , pid_t, int);
-void escribirBloque(int * , pid_t);
-void proyectarFichero(int *, int);
-void desproyectarFichero(int *, int);
-
-
-void SIGUSR1_MALO(int sigset, SOY * hijos);
-void SIGUSR1_CHARLIE(int , SOY *);
-void SIGUSR1_BOSLEY(int , SOY *);
-
+int processBosley();
+void processCharlie();
+void processMalo();
+void processAngel(char *);
+void EMPTY_HANDLER(int sigset);
+void MANPIUM(int sigset);
+int generarRandom(int , int );
 
 int main (int argc, char* argv[], char * envp []){
-    int pid [20];
     int rapido = 0;
-    SOY hijos;
-
+    char msg [200];
     if(argc>2){
-		write(1,"\nHaz introducido demasiados argumentos",100);
+        sprintf(msg,"\nHaz introducido demasiados argumentos");
+        write(1, msg, sizeof(msg)-1);
         return 1;
     } else{
         if(argc==2){
@@ -55,47 +39,50 @@ int main (int argc, char* argv[], char * envp []){
             }
         }
     }
-    
-    sigset_t mask;/*
-    sigfillset(&mask);
-    sigdelset(&mask, SIGUSR1);
-    sigdelset(&mask, SIGTERM);
-    sigprocmask(SIG_SETMASK, &mask, NULL);
-    */
+    sigset_t mask;
+    sigaddset(&mask, SIGUSR1);       
+    sigaddset(&mask, SIGTERM);
+    sigprocmask(SIG_SETMASK, &mask, NULL);   
+
     if (strcmp(argv[0],"./charlie") == 0) {
-        processCharlie(&hijos, &mask);
+        processCharlie();
     }else if(strcmp(argv[0],"bosley") == 0) {
-        processBosley(&hijos, &mask);
+        processBosley();
     }else if(strcmp(argv[0],"sabrina") == 0 || strcmp(argv[0],"kelly") == 0 || strcmp(argv[0],"jill") == 0){
-        processAngel(&hijos, argv[0]);
+        processAngel(argv[0]);
     }else if(strcmp(argv[0],"malo") == 0){
-        processMalo(&hijos, &mask);
+        processMalo();
     }
-
-    //sigfillset(&mask); //Volvemos a llenar la mascar
-
     return 0;
 }
 
-void processCharlie(SOY * hijos, sigset_t * mask){
-   
-    char msg1 [] = "\nEJECUTANDO CHARLY...\n";
-    char msg2 [] = "Soy Charlie\n";
-    char msg3 [] = "Bosley, hijo de mis entretelas, tu PID es x. Espero a que me avises...\n";
-    char msg4 [] = "Veo que los Angeles ya han nacido. Creo al malo...\n";
-    char msg5 [] = "El malo ha nacido y su PID es x. Aviso a Bosley\n";
+void processCharlie(){
+    struct sigaction act;
+    int descript;
+    char msg [200] = "";
+    pid_t charlie,bosley,malo;
+    charlie = getpid();
+    sigset_t mask_malo;
 
-    int valor_devuelto;
+    act.sa_handler = EMPTY_HANDLER;
+	act.sa_flags = 0;
+	sigemptyset(&act.sa_mask);
 
-    hijos->charlie = getpid();
-   
-    write(1, msg1 , sizeof(msg1) -1 );
-    write(1, msg2 , sizeof(msg2) -1 );
-    write(1, msg3 , sizeof(msg3) -1 );
-    write(1, msg4 , sizeof(msg4) -1 );
-    write(1, msg5 , sizeof(msg5) -1 );
+	if(sigaction(SIGUSR1,&act,NULL)==-1){
+		perror("SIGACTION USR1");
+		exit(1);
+	}
 
-    switch (hijos->bosley = fork())
+    sprintf(msg,"\nSoy Charlie (PID %d) ...", getpid());
+    write(1, msg, sizeof(msg)-1);
+
+    sigfillset(&mask_malo);
+    sigdelset(&mask_malo, SIGUSR1);
+    sigprocmask(SIG_SETMASK, &mask_malo, NULL);  
+    
+    inicializarArchivo();
+
+    switch (bosley = fork())
     {
         case -1:
             perror("\nNo se ha podido crear a Bosley\n");
@@ -103,65 +90,65 @@ void processCharlie(SOY * hijos, sigset_t * mask){
             break;
         case 0:
             execl("./charlie","bosley", NULL);
-            write(1, msg3 , sizeof(msg3) -1 );
             perror("Error al crear al hijo ");
             break;
-        default:
-        waitpid(hijos->bosley,&valor_devuelto, NULL);
-        write(1, msg2 , sizeof(msg2) -1 );
-        switch (hijos->malo = fork())
-        {
-            case -1:
-                perror("\nNo se ha podido crear a Bosley\n");
-                exit(1);
+        default:              
+            sigsuspend(&mask_malo);
+            switch (malo = fork())
+            {
+                case -1:
+                    perror("\nNo se ha podido crear al malo\n");
+                    exit(1);
+                    break;
+                case 0:
+                    execl("./charlie","malo", NULL);
+                    perror("Error al crear al malo ");
+                    break;
+                default:
+                sigsuspend(&mask_malo);
+
+                memset(msg, 0, 200);
+                sprintf(msg,"\nCHARLIE : El malo ha nacido (PID %d). Aviso a Bosley", malo);
+                write(1, msg, sizeof(msg)-1);
+                
+                kill(bosley, SIGUSR1); 
                 break;
-            case 0:                     
-                write(1, msg5 , sizeof(msg5) -1 );
-                execl("./charlie","malo", NULL);                
-                perror("Error al crear al malo ");
-                break;
-            default:
-                write(1, msg4 , sizeof(msg4) -1 );
-                act.sa_handler = SIGUSR1_CHARLIE;
-                sigemptyset(&act.sa_mask);
-                act.sa_flags=0;
-                if (-1==sigaction(SIGUSR1,&act,NULL))
-                {perror("CHARLIE: sigaction");
-                    return 1;}
-                wait(&valor_devuelto);
-            break;
-        }
+            }
         break;
     }
+
+    sigsuspend(&mask_malo);
+    //proyectarFichero(int descript);
+    memset(msg, 0, 200);
+    sprintf(msg,"\nFIN DEL JUEGO");
+    write(1, msg, sizeof(msg)-1);
 }
 
-void processBosley(SOY * hijos, sigset_t * mask){
-    act.sa_handler = SIGUSR1_CHARLIE;
-    sigfillset(&act.sa_mask);
-    act.sa_flags = 0;
-    sigaction(SIGUSR1, &act , NULL); 
-    sigfillset(mask);
-    sigdelset(mask, SIGUSR1);
-    
-    char msg [] = "\nEJECUTANDO BOSLEY...\n" ;
-    char msg1 [] = "Hola, papA, dOnde estA mamA? Mi PID es x y voy a crear a los Angeles...\n" ;
-    char msg_correcto [] = "\n He recibido la señal de que el malo se ha creado !" ;
-    char msg_angeles [] = "\nLos tres Angeles han acabado su misiOn. Informo del resultado a Charlie y muero\n" ;
-    char msg3 [] = "\nPardiez! La pistola se ha encasquillado\n" ;
-    char msg4 [] = "\nVoy a disparar al PID x\n" ;
-    char msg5 [] = "\nBINGO! He hecho diana! Un malo menos\n" ;
-    char msg6 [] = "\nHe fallado. Vuelvo a intentarlo\n" ;
-    char msg7 [] = "\nHe fallado ya tres veces y no me quedan mAs balas. Muero\n" ;
+int processBosley(){
+    pid_t charlie,jill,kelly,sabrina; //Tengo PID ANGELES
+    sigset_t mask_bosley;
+
+    struct sigaction act1;
+    int valor_devuelto;
+    char msg [200] = "";
+
+    charlie= getppid();
+
+    act1.sa_handler = EMPTY_HANDLER;
+	act1.sa_flags = 0;
+	sigemptyset(&act1.sa_mask);
+
+	if(sigaction(SIGUSR1,&act1,NULL)==-1){
+		perror("SIGACTION USR1");
+		exit(1);
+	}
+
+    sigfillset(&mask_bosley);
+    sigdelset(&mask_bosley, SIGUSR1);
+    sigprocmask(SIG_SETMASK, &mask_bosley, NULL);  
 
 
-        
-    
-    int valor_devuelto, s_recibida = 0;
-
-    write(1, msg , sizeof(msg)-1);
-    write(1, msg1 , sizeof(msg1)-1);
-        
-    switch (hijos->sabrina = fork())
+    switch (sabrina = fork())
     {
         case -1:
             perror("\nNo se ha podido crear a Sabrina\n");
@@ -172,8 +159,9 @@ void processBosley(SOY * hijos, sigset_t * mask){
             perror("Error al crear al hijo ");
             break;
         default:
-        waitpid(hijos->sabrina,&valor_devuelto, NULL);
-        switch (hijos->jill = fork()){
+            waitpid(sabrina,&valor_devuelto, NULL);
+        switch (jill = fork())
+        {
             case -1:
                 perror("\nNo se ha podido crear a Bosley\n");
                 exit(1);
@@ -183,64 +171,105 @@ void processBosley(SOY * hijos, sigset_t * mask){
                 perror("Error al crear al hijo ");
                 break;
             default:
-                waitpid(hijos->jill,&valor_devuelto, NULL);
-                switch (hijos->kelly = fork()){
-                    case -1:
-                        perror("\nNo se ha podido crear a Bosley\n");
-                        exit(1);
-                        break;
-                    case 0:
-                        execl("./charlie","kelly", NULL);
-                        perror("Error al crear al hijo ");
-                        break;
-                    default:
-                        act.sa_handler = SIGUSR1_BOSLEY;
-                        sigemptyset(&act.sa_mask);
-                        act.sa_flags=0;
-                        if (-1==sigaction(SIGUSR1,&act,NULL))
-                        {perror("CHARLIE: sigaction");
-                            return 1;}
-                        wait(&valor_devuelto);
+                waitpid(jill,&valor_devuelto, NULL);
+            switch (kelly = fork())
+            {
+                case -1:
+                    perror("\nNo se ha podido crear a Bosley\n");
+                    exit(1);
                     break;
-                }
-                break;
+                case 0:
+                    execl("./charlie","kelly", NULL);
+                    perror("Error al crear al hijo ");
+                    break;
+                default:
+                    waitpid(kelly,&valor_devuelto, NULL);
+            }
+            break;
         }
         break;
+
     }
-    write(1, msg_angeles , sizeof(msg_angeles)-1);
-    kill(hijos->charlie, SIGUSR1);
 
+    sprintf(msg,"\nBOSLEY : Los Angeles han sido creados!\n");
+    write(1, msg, sizeof(msg)-1);
 
+    kill(charlie,SIGUSR1);
+    sigsuspend(&mask_bosley);
+
+    memset(msg, 0, 200);
+    sprintf(msg,"\nBOSLEY : ATACAR!!!! ANGELES!!!");
+    write(1, msg, sizeof(msg)-1);
+    kill(sabrina, SIGUSR1);
+    kill(kelly, SIGUSR1);
+    kill(jill, SIGUSR1);
 }
 
-void processAngel(SOY * hijos, char *angel){
-    char msg [] = "\nEJECUTANDO ANGEL \n";
-    char msg2 [] = "\nHola, he nacido y mi PID es  ...\n" ;
-    write(1 , msg2 , sizeof(msg2)-1);
-    write(1 , msg , sizeof(msg) - 1);
+void processAngel(char *angel){
+    char msg [200] = "";
+
+    sprintf(msg,"\n%s: Hola, he sido creada ^^ (PID %d)...\n", angel, getpid());
+    write(1, msg, sizeof(msg)-1);
+
+    /*
+    sig_t mask_angeles;
+    sigfillset(&mask_malo);
+    sigdelset(&mask_malo, SIGUSR1);
+    sigprocmask(SIG_SETMASK, &mask_malo, NULL);  
+
+    sigsuspend(&mask_angeles);*/
 }
 
-void processMalo(SOY * hijos, sigset_t * mask){
-    char msg [] = "\nEJECUTANDO MALO...\n";
-    char msg_2 [] = "Soy Malo malisimo\n";
-    int i=0, valor_devuelto;
+void processMalo(){
+    pid_t charlie, malo;
+    int i=0;
+    char msg [200] = "";
 
-    hijos->malo = getpid();
+    charlie = getppid();
+    malo = getpid();
 
-    write(1, msg , sizeof(msg)-1);
-    write(1, msg_2 , sizeof(msg_2)-1);
+    sprintf(msg,"\nMALO : Me estoy ejecutando muajaja (PID %d)...\n", getpid());
+    write(1, msg, sizeof(msg)-1);
+    
+    
+    /******************************************************************************************************************/
+    proyeccionMemoria(malo);
+    /******************************************************************************************************************/    
+    
+    while(i<20){  
+        dormirMalo(0);
+        switch (malo = fork()){
+            case -1:
+                perror("\nNo se ha podido crear reencarnacion del malo\n");
+                exit(1);
+                break;
+            case 0:
+                if (i<1) {
+                    kill(charlie, SIGUSR1);
+                }
+                i++;
+                memset(msg, 0, 200);
+                sprintf(msg,"JA, JA, JA, me acabo de reencarnar y mi nuevo PID es: %d. Que malo que soy...", getpid());
+                write(1, msg, sizeof(msg)-1);
+                break;
+            default:
+                exit(1);
+            break;
+        }
+     }
+     
+    if (i == 20) {
+        memset(msg, 0, 200);
+        sprintf(msg,"\nHe sobrevivido a mi vigesima reencarnacion. Hago mutis por el foro\n");
+        write(1, msg, sizeof(msg)-1);
+        kill(charlie, SIGUSR1);
+    }
 
-    act.sa_handler = SIGUSR1_BOSLEY;
-    sigemptyset(&act.sa_mask);
-    act.sa_flags=0;
-    if (-1==sigaction(SIGUSR1,&act,NULL))
-    {perror("CHARLIE: sigaction");
-        return 1;}
-    wait(&valor_devuelto);
 }
 
 void dormirAngeles (int velocidad){
     if(!velocidad){
+        // Modo normal
         int rnd = generarRandom(6,12);
         sleep(rnd);
     }
@@ -248,105 +277,90 @@ void dormirAngeles (int velocidad){
 
 void dormirMalo (int velocidad){
     if(!velocidad){
+        // Modo normal
         int rnd = generarRandom(1,3);
         sleep(rnd);
     }
 }
 
-/*******************************MANEJADORAS**********************************/
-
-void SIGUSR1_CHARLIE(int sigset, SOY * hijos){
-	kill(hijos->bosley,SIGUSR1);
-    switch(hijos->num){
-
-		case 1:
-			
-			break;
-        case 2:
-
-            break;
-        
-        case 3:
-
-            break;
-
-        case 4 :
-
-            break;
-
-        case 5 :
-
-            break;
-
-        case 6:
-
-            break;
-		default:
-			break;
-	}
-}
-
-void SIGUSR1_MALO(int sigset, SOY * hijos){
-    kill(hijos->charlie,SIGUSR1);
-}
-
-void SIGUSR1_BOSLEY(int sigset, SOY * hijos){
-    kill(hijos->charlie,SIGUSR1);
+void EMPTY_HANDLER(int sigset){
 }
 
 /****************************PROYECCIÓN EN MEMORIA***************************/
 
-void proyectarFichero(int * pids, int file){
-    char fichero [] = "PIDS.bin";
-    char err_1 [] = "Error al abrir el fichero ";
-    char err_2 [] = "Error al proyectar el fichero: en memoria";
-    if( -1 == (file = open(fichero, O_RDWR | O_CREAT, 0600)) ) 
-        write(1, err_1, sizeof(err_1)-1);
+void inicializarArchivo(){
+    int f;
+	
+	if(-1 == (f =open("pids.bin", O_RDWR | O_CREAT | O_TRUNC, 0600) )){
+		perror("error");
+		exit(1);
+	}
+  
+	char b[80];
 
-    if( MAP_FAILED == ( pids = (int) mmap(0, sizeof(pids), PROT_READ | PROT_WRITE, MAP_SHARED, file, 0)) ){
-        write(1, err_2, sizeof(err_2)-1);
-    }
+	int i;
+	for(i=0; i<80; i++){
+		b[i] = 0;
+	}
 
-    for(int i = 0; i < sizeof(pids) ; i++){
-        pids[i] = 0;
-    }
+	write(f,b,80);
+	close(f);
+}
+
+void proyeccionMemoria(pid_t malo){
+
+    int valor,fd,aux,temp,um, dir;
+    char *address;
+
+    fd = open("pids.bin", O_RDWR);			
+    address = mmap( 0, 80 , PROT_WRITE | PROT_READ , MAP_SHARED, fd , 0);
+    close(fd);
     
-}
+    do{ 
+        dir = generarRandom(0, 20);
+    }while( address[dir]!=0 && address[dir+1]!=0 && address[dir+2]!=0 && address[dir+3]!=0 );
 
-void escribirBloque(int * pid, pid_t p){
-    char err [] = "ERROR: No queda espacio para almacenar mas reencarnaciones (PIDs)";
-    int i = generarRandom(0, 19);
-    while(pid[i]!=0){
-        i = generarRandom(0, 19);
-    }
+    aux = malo%10;
+    temp = malo/10;
+
+    address[dir] = aux; 
+
+    aux = temp%10;
+    temp = temp/10;
+
+    address[dir+1] = aux;
+
+    aux = temp%10;
+    temp = temp/10;
     
-    if (i>sizeof(pid)-1) {
-        write(1, err, sizeof(err)-1);
-    }else{
-        pid[i] = p;
-    }
+    address[dir+2] = aux;
+    address[dir+3] = temp;
 
+    munmap(address, 80);
 }
 
-int leerBloque(int * pid, pid_t p, int num){
-    if(pid[num]!= p){
-        return 1;
-    }
-    return 0;
-}
-
-
-void desproyectarFichero(int * pids, int file ){
-    char err_1 [] = "ERROR: Hubo problemas des desproyectar el fichero" ;
-    char err_2 [] = "ERROR: No se pudo cerrar el fichero" ;
-    if(-1 == munmap((void*)pids, sizeof(pids)) ) 
-        write(1, err_1, sizeof(err_1)-1);
-    if(-1 == close(file) ) 
-        write(1, err_2, sizeof(err_2)-1);
-}	
 
 /****************************OTRAS FUNCIONES***************************/
 
 int generarRandom(int a, int b){
     return a+(int)(rand()/(1.0+RAND_MAX)*(b-a+1));
 }
+
+void MANPIUM(int sigset){
+    
+
+
+
+    
+}
+/*NOTAS*/
+/* getpid devuelve el identificador de proceso del proceso actual y  getppid  devuelve  el
+       identificador de proceso del padre del proceso actual. */
+//	fprintf(stderr, "\nPPID: %d|PID: %d",getppid(),getpid());
+
+
+// void despedida(){
+    
+
+
+//}
